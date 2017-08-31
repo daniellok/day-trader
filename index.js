@@ -23,14 +23,15 @@ createHiDPICanvas = function(w, h, ratio) {
 
 var canvas = createHiDPICanvas(640, 420);
 var ctx = canvas.getContext("2d");
-
-ctx.beginPath();
-ctx.rect(0,0,640,420);
-ctx.fillStyle = "#1e1e1e";
-ctx.fill();
-ctx.closePath();
+var font = "10px Arial"
+var gridColor = "#666666";
+var lineColor = "#079900";
+var buyColor = "#dd8d1c";
+var sellColor = "#dd8d1c";
+var closeColor = "#ef6147";
 
 var priceList = [];
+var positions = {type: null, price: null}
 var priceHi = 245;
 var priceLo = 243;
 var price = 244;
@@ -46,6 +47,19 @@ var roundToHalf = (number) => {
   return Math.floor(number*2)/2
 }
 
+var frameTracker = () => {
+  var frameCount = 0;
+  var draw = (instructions) => {
+    if (frameCount < instructions.length) {
+      instructions[frameCount]();
+      frameCount++
+    } else {
+      instructions.slice(-1)[0]()
+    }
+  }
+  return draw;
+}
+
 var drawBoard = () => {
   var newList = priceList.slice()
   var yList = newList.map((obj) => {
@@ -58,20 +72,23 @@ var drawBoard = () => {
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.beginPath();
   ctx.lineWidth = 1;
-  ctx.font = "12px Arial";
-  ctx.fillStyle = "#666666";
-  ctx.strokeStyle = "#666666";
+  ctx.setLineDash([])
+  ctx.font = font;
+  ctx.fillStyle = gridColor;
+  ctx.strokeStyle = gridColor;
 
   for (var i=0;i<lines.length;i++) {
     ctx.moveTo(0,lines[i].y);
     ctx.lineTo(640,lines[i].y);
-    ctx.fillText(lines[i].price.toString(),605,lines[i].y-5);
+    ctx.fillText(lines[i].price.toString(),610,lines[i].y-5);
   }
   ctx.stroke();
   ctx.closePath();
 
   ctx.beginPath()
-  ctx.strokeStyle = "#079900";
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([])
   ctx.moveTo(yList[0].x,yList[0].price)
   for (var i=1;i<yList.length;i++) {
     ctx.lineTo(yList[i].x,yList[i].price)
@@ -81,10 +98,208 @@ var drawBoard = () => {
 }
 
 var startTradingDay = () => {
-  var interval = setInterval(function(){stockMover(interval)},30);
+  var funArray = [];
+  canvas.addEventListener('click', 
+    () => {
+      if (!positions.type) {
+        buy(x,price,funArray)
+      }
+      else {
+        close(x,price,funArray)
+      }
+    })
+  var interval = setInterval(function(){stockMover(interval,funArray)},30);
 }
 
-var stockMover = (interval) => {
+var generateBuyInstructions = (x,price) => {
+  return ([
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = buyColor;
+      ctx.setLineDash([])
+      ctx.arc(x,mapPriceToPixels(price),8,0,2*Math.PI);
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = buyColor;
+      ctx.setLineDash([])
+      ctx.arc(x,mapPriceToPixels(price),7,0,2*Math.PI);
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = buyColor;
+      ctx.setLineDash([])
+      ctx.arc(x,mapPriceToPixels(price),6,0,2*Math.PI);
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = buyColor;
+      ctx.setLineDash([])
+      ctx.arc(x,mapPriceToPixels(price),5,0,2*Math.PI);
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = buyColor;
+      ctx.setLineDash([])
+      ctx.arc(x,mapPriceToPixels(price),4,0,2*Math.PI);
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = buyColor;
+      ctx.setLineDash([])
+      ctx.arc(x,mapPriceToPixels(price),3,0,2*Math.PI);
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = buyColor;
+      ctx.setLineDash([])
+      ctx.arc(x,mapPriceToPixels(price),3,0,2*Math.PI);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5,5])
+      ctx.moveTo(x,mapPriceToPixels(price));
+      ctx.lineTo(((640-x)/4 + x), mapPriceToPixels(price))
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = buyColor;
+      ctx.setLineDash([])
+      ctx.arc(x,mapPriceToPixels(price),3,0,2*Math.PI);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5,5])
+      ctx.moveTo(x,mapPriceToPixels(price));
+      ctx.lineTo(((640-x)/2 + x), mapPriceToPixels(price))
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = buyColor;
+      ctx.setLineDash([])
+      ctx.arc(x,mapPriceToPixels(price),3,0,2*Math.PI);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5,5])
+      ctx.moveTo(x,mapPriceToPixels(price));
+      ctx.lineTo(((640-x)*3/4 + x), mapPriceToPixels(price))
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.fillStyle = buyColor;
+      ctx.strokeStyle = buyColor;
+      ctx.setLineDash([])
+      ctx.arc(x,mapPriceToPixels(price),3,0,2*Math.PI);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5,5])
+      ctx.moveTo(x,mapPriceToPixels(price));
+      ctx.lineTo(640, mapPriceToPixels(price))
+      ctx.stroke();
+      ctx.fillText(price.toFixed(2),607,mapPriceToPixels(price)-5)
+      ctx.closePath();
+    })
+  ])
+}
+
+var generateCloseInstructions = (x,price) => {
+  return ([
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = closeColor;
+      ctx.setLineDash([])
+      ctx.arc(x,mapPriceToPixels(price),8,0,2*Math.PI);
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = closeColor;
+      ctx.setLineDash([])
+      ctx.arc(x,mapPriceToPixels(price),7,0,2*Math.PI);
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = closeColor;
+      ctx.setLineDash([])
+      ctx.arc(x,mapPriceToPixels(price),6,0,2*Math.PI);
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = closeColor;
+      ctx.setLineDash([])
+      ctx.arc(x,mapPriceToPixels(price),5,0,2*Math.PI);
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = closeColor;
+      ctx.setLineDash([])
+      ctx.arc(x,mapPriceToPixels(price),4,0,2*Math.PI);
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = closeColor;
+      ctx.setLineDash([])
+      ctx.arc(x,mapPriceToPixels(price),3,0,2*Math.PI);
+      ctx.stroke();
+      ctx.closePath();
+    })
+  ])
+}
+
+var buy = (x,price,funArray) => {
+  var instructions = generateBuyInstructions(x,price);
+  var animate = frameTracker();
+  positions.type = 'long';
+  positions.price = price;
+  funArray.push(() => {animate(instructions)});
+}
+
+var close = (x,price,funArray) => {
+
+}
+
+var stockMover = (interval,funArray) => {
   var dx = 2;
 
   if (x > 640) {
@@ -104,6 +319,10 @@ var stockMover = (interval) => {
   
   priceList.push({x: x, price: price});
   drawBoard();
+
+  for (var i=0;i<funArray.length;i++) {
+    funArray[i]();
+  }
 }
 
 var endTradingDay = (interval) => {
