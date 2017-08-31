@@ -23,7 +23,9 @@ createHiDPICanvas = function(w, h, ratio) {
 
 var canvas = createHiDPICanvas(640, 420);
 var ctx = canvas.getContext("2d");
-var font = "10px Arial"
+var font = "10px Arial";
+var gainFont = "12px bold Arial";
+var gainFontColor = "rgba(216, 155, 56,"
 var gridColor = "#666666";
 var lineColor = "#079900";
 var buyColor = "#dd8d1c";
@@ -228,7 +230,8 @@ var generateBuyInstructions = (x,price) => {
   ])
 }
 
-var generateCloseInstructions = (x,price) => {
+var generateCloseInstructions = (x,price,funArray) => {
+  var closePrice = positions.price;
   return ([
     (() => {
       ctx.beginPath();
@@ -283,6 +286,111 @@ var generateCloseInstructions = (x,price) => {
       ctx.arc(x,mapPriceToPixels(price),3,0,2*Math.PI);
       ctx.stroke();
       ctx.closePath();
+    }),
+    (() => {
+      funArray.shift();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.font = gainFont;
+      ctx.fillStyle = gainFontColor + "1.0)";
+      ctx.fillText((price - closePrice).toFixed(2),x-10,mapPriceToPixels(price)-10);
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.font = gainFont;
+      ctx.fillStyle = gainFontColor + "0.9)";
+      ctx.fillText((price - closePrice).toFixed(2),x-11,mapPriceToPixels(price)-11)
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.font = gainFont;
+      ctx.fillStyle = gainFontColor + "0.8)";
+      ctx.fillText((price - closePrice).toFixed(2),x-12,mapPriceToPixels(price)-12)
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.font = gainFont;
+      ctx.fillStyle = gainFontColor + "0.7)";
+      ctx.fillText((price - closePrice).toFixed(2),x-13,mapPriceToPixels(price)-13)
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.font = gainFont;
+      ctx.fillStyle = gainFontColor + "0.6)";
+      ctx.fillText((price - closePrice).toFixed(2),x-14,mapPriceToPixels(price)-14)
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.font = gainFont;
+      ctx.fillStyle = gainFontColor + "0.5)";
+      ctx.fillText((price - closePrice).toFixed(2),x-15,mapPriceToPixels(price)-15)
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.font = gainFont;
+      ctx.fillStyle = gainFontColor + "0.4)";
+      ctx.fillText((price - closePrice).toFixed(2),x-16,mapPriceToPixels(price)-16)
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.font = gainFont;
+      ctx.fillStyle = gainFontColor + "0.3)";
+      ctx.fillText((price - closePrice).toFixed(2),x-17,mapPriceToPixels(price)-17)
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.font = gainFont;
+      ctx.fillStyle = gainFontColor + "0.2)";
+      ctx.fillText((price - closePrice).toFixed(2),x-18,mapPriceToPixels(price)-18)
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.font = gainFont;
+      ctx.fillStyle = gainFontColor + "0.1)";
+      ctx.fillText((price - closePrice).toFixed(2),x-19,mapPriceToPixels(price)-19)
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      ctx.beginPath();
+      ctx.lineWidth = 2.5;
+      ctx.font = gainFont;
+      ctx.fillStyle = gainFontColor + "0.0)";
+      ctx.fillText((price - closePrice).toFixed(2),x-20,mapPriceToPixels(price)-20)
+      ctx.stroke();
+      ctx.closePath();
+    }),
+    (() => {
+      funArray.shift();
     })
   ])
 }
@@ -296,7 +404,11 @@ var buy = (x,price,funArray) => {
 }
 
 var close = (x,price,funArray) => {
-
+  var instructions = generateCloseInstructions(x,price,funArray);
+  var animate = frameTracker();
+  positions.type = null;
+  positions.price = null;
+  funArray.push(() => {animate(instructions)});
 }
 
 var stockMover = (interval,funArray) => {
@@ -323,11 +435,13 @@ var stockMover = (interval,funArray) => {
   for (var i=0;i<funArray.length;i++) {
     funArray[i]();
   }
+
+  console.log(funArray);
 }
 
 var endTradingDay = (interval) => {
   clearInterval(interval);
-  alert("Wow!")
+  // TODO
 }
 
 startTradingDay();
