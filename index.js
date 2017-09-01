@@ -35,8 +35,29 @@ var lineColor = "#079900";
 var buyColor = "#dd8d1c";
 var sellColor = "#dd8d1c";
 var closeColor = "#ef6147";
+
 var volatility = 0.2;
 var skew = 0.00;
+
+var ichimoku = true;
+var ichimokuFill = "rgba(137, 57, 229, 0.5)"
+var tenkansenData = Array(18).fill(244);
+var kijunsenData = Array(52).fill(244);
+var senkouspanbData = Array(104).fill(244);
+var spanAColor = "#e0d90f";
+var spanBColor = "#0daee0";
+var ichiPointsA = [];
+var ichiPointsB = [];
+
+var rsi = true;
+var prevPrice = 244;
+var gainData = Array(14).fill(0);
+var lossData = Array(14).fill(0);
+var rsiBoundColor = "#9e6c0f";
+var rsiLineColor = "#a3a3a3";
+var rsiLowerFill = "rgba(186,0,0,0.5)";
+var rsiUpperFill = "rgba(0,124,8,0.5";
+var rsiPoints = [];
 
 var priceList = [];
 var funArray = [];
@@ -54,6 +75,10 @@ var y = mapPriceToPixels(price);
 
 function mapPriceToPixels(price) {
   return (((price - priceHi)/(priceLo - priceHi)) * 400) + 10
+}
+
+function mapRSIToPixels(rsi) {
+  return (((rsi - 100)/-100) * 100) + 320
 }
 
 function roundToHalf(number) {
@@ -79,6 +104,135 @@ function frameTracker() {
     }
   }
   return draw;
+}
+
+function drawIchimoku() {
+  tenkansenData.shift();
+  kijunsenData.shift();
+  senkouspanbData.shift();
+  tenkansenData.push(price);
+  kijunsenData.push(price);
+  senkouspanbData.push(price);
+
+  var tenkansen = (Math.max(...tenkansenData) + Math.min(...tenkansenData))/2;
+  var kijunsen = (Math.max(...kijunsenData) + Math.min(...kijunsenData))/2;
+  var senkouspana = (tenkansen + kijunsen)/2;
+  var senkouspanb = (Math.max(...senkouspanbData) + Math.min(...senkouspanbData))/2;
+
+  ichiPointsA.push({x: x, price: senkouspana});
+  ichiPointsB.push({x: x, price: senkouspanb});
+
+  // draw span a
+  ctx.beginPath();
+  ctx.setLineDash([])
+  ctx.strokeStyle = spanAColor;
+  ctx.moveTo(ichiPointsA[0].x,mapPriceToPixels(ichiPointsA[0].price))
+  for (var i=0;i<ichiPointsA.length;i++) {
+    ctx.lineTo(ichiPointsA[i].x,mapPriceToPixels(ichiPointsA[i].price))
+  }
+  ctx.stroke();
+  ctx.closePath();
+
+  // draw span b
+  ctx.beginPath();
+  ctx.setLineDash([])
+  ctx.strokeStyle = spanBColor;
+  ctx.moveTo(ichiPointsB[0].x,mapPriceToPixels(ichiPointsB[0].price))
+  for (var i=0;i<ichiPointsB.length;i++) {
+    ctx.lineTo(ichiPointsB[i].x,mapPriceToPixels(ichiPointsB[i].price))
+  }
+  ctx.stroke();
+  ctx.closePath();
+
+  // draw fill
+  ctx.beginPath();
+  ctx.moveTo(ichiPointsA[0].x,mapPriceToPixels(ichiPointsA[0].price))
+  for (var i=0;i<ichiPointsB.length;i++) {
+    ctx.lineTo(ichiPointsB[i].x,mapPriceToPixels(ichiPointsB[i].price))
+  }
+  ctx.lineTo(ichiPointsA[ichiPointsA.length - 1].x,mapPriceToPixels(ichiPointsA[ichiPointsA.length - 1].price))
+  for (var i=0;i<ichiPointsA.length;i++) {
+    ctx.lineTo(ichiPointsA[ichiPointsA.length - i - 1].x,mapPriceToPixels(ichiPointsA[ichiPointsA.length - i - 1].price))
+  }
+  ctx.save();
+  ctx.clip();
+  ctx.fillStyle = ichimokuFill;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.closePath();
+  ctx.restore();
+}
+
+function drawRSI() {
+  var newData = price - prevPrice;
+  prevPrice = price;
+  lossData.shift();
+  gainData.shift();
+  if (newData >= 0) {
+    lossData.push(0);
+    gainData.push(newData);
+  } else {
+    lossData.push(-newData);
+    gainData.push(0);
+  }
+
+  var avgGain = (gainData.reduce((a,b) => {return a + b}))/gainData.length;
+  var avgLoss = (lossData.reduce((a,b) => {return a + b}))/lossData.length;
+  if (avgLoss == 0) {
+    avgLoss = 0.1
+  }
+  var rs = avgGain/avgLoss;
+  var rsi = 100 - (100/(1+rs));
+
+  rsiPoints.push({x: x, rsi: rsi});
+
+  ctx.beginPath();
+  ctx.setLineDash([]);
+  ctx.strokeStyle = rsiBoundColor;
+  ctx.moveTo(0,350);
+  ctx.lineTo(640,350);
+  ctx.moveTo(0,390);
+  ctx.lineTo(640,390);
+  ctx.stroke();
+  ctx.closePath();
+
+  ctx.beginPath();
+  ctx.strokeStyle = rsiLineColor;
+  ctx.moveTo(rsiPoints[0].x,mapRSIToPixels(rsiPoints[0].rsi));
+  for (var i=1;i<rsiPoints.length;i++) {
+    ctx.lineTo(rsiPoints[i].x,mapRSIToPixels(rsiPoints[i].rsi));
+  }
+  ctx.stroke();
+  ctx.closePath();
+
+  // fill upper rsi bound
+  ctx.beginPath();
+  ctx.moveTo(0,350);
+  for (var i=0;i<rsiPoints.length;i++) {
+    ctx.lineTo(rsiPoints[i].x,mapRSIToPixels(rsiPoints[i].rsi));
+  }
+  ctx.lineTo(rsiPoints[rsiPoints.length - 1].x,350);
+  ctx.lineTo(0,350);
+  ctx.save();
+  ctx.clip();
+  ctx.fillStyle = rsiUpperFill;
+  ctx.fillRect(0,320,640,30);
+  ctx.closePath();
+  ctx.restore();
+
+  // fill lower rsi bound
+  ctx.beginPath();
+  ctx.moveTo(0,390);
+  for (var i=0;i<rsiPoints.length;i++) {
+    ctx.lineTo(rsiPoints[i].x,mapRSIToPixels(rsiPoints[i].rsi));
+  }
+  ctx.lineTo(rsiPoints[rsiPoints.length - 1].x,390);
+  ctx.lineTo(0,390);
+  ctx.save();
+  ctx.clip();
+  ctx.fillStyle = rsiLowerFill;
+  ctx.fillRect(0,390,640,30);
+  ctx.closePath();
+  ctx.restore();
 }
 
 function drawBoard() {
@@ -168,6 +322,8 @@ function onMouseMove(e) {
 
 function startTradingDay() {
   openPrice = closePrice;
+  priceHi = openPrice + 1;
+  priceLo = openPrice - 1;
   accountOpenValue = (positions.shares * price + capital);
   canvas.removeEventListener('mousemove',onMouseMove);
   canvas.removeEventListener('click',buttonOnClick);
@@ -525,7 +681,7 @@ function drawEndDayText() {
   ctx.beginPath();
   ctx.font = "bold 20px Arial";
   ctx.fillStyle = accountFontColor;
-  ctx.fillText("DING DING DING!",233,140)
+  ctx.fillText("DING DING DING!",235,140)
   ctx.fillStyle = gridColor;
   ctx.font = accountFontBold;
   ctx.fillText("SPY Close: ",205,167);
@@ -600,6 +756,14 @@ function stockMover(interval) {
     drawOvernightPosition();
   }
 
+  if (ichimoku) {
+    drawIchimoku();
+  }
+
+  if (rsi) {
+    drawRSI();
+  }
+
   for (var i=0;i<funArray.length;i++) {
     funArray[i]();
   }
@@ -614,10 +778,11 @@ function endTradingDay(interval) {
   x = 0;
   y = mapPriceToPixels(price);
   closePrice = price;
-  priceHi = price + 1;
-  priceLo = price - 1;
   priceList = [];
   funArray = [];
+  ichiPointsA = [];
+  ichiPointsB = [];
+  rsiPoints = []
   if (positions.type) {
     overnightPosition = true;
     funArray = [() => {}]
