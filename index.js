@@ -34,28 +34,41 @@ var lineColor = "#079900";
 var buyColor = "#dd8d1c";
 var sellColor = "#dd8d1c";
 var closeColor = "#ef6147";
+var volatility = 0.2;
+var skew = 0.0;
 
 var priceList = [];
-var positions = {type: null, price: null, shares: null}
+var funArray = [];
+var positions = {type: null, price: null, shares: 0}
+var overnightPosition = false;
 var capital = 10000;
 var priceHi = 245;
 var priceLo = 243;
 var price = 244;
-
-var mapPriceToPixels = (price) => {
-  return (((price - priceHi)/(priceLo - priceHi)) * 400) + 10
-}
-
+var closePrice = 0;
+var openPrice = 244;
 var x = 0;
 var y = mapPriceToPixels(price);
 
-var roundToHalf = (number) => {
+function mapPriceToPixels(price) {
+  return (((price - priceHi)/(priceLo - priceHi)) * 400) + 10
+}
+
+function roundToHalf(number) {
   return Math.floor(number*2)/2
 }
 
-var frameTracker = () => {
+function getMousePos(canvas, e) {
+    var rect = canvas.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+  }
+
+function frameTracker() {
   var frameCount = 0;
-  var draw = (instructions) => {
+  function draw(instructions) {
     if (frameCount < instructions.length) {
       instructions[frameCount]();
       frameCount++
@@ -66,12 +79,7 @@ var frameTracker = () => {
   return draw;
 }
 
-var drawBoard = () => {
-  var newList = priceList.slice()
-  var yList = newList.map((obj) => {
-    return {x: obj.x, price: mapPriceToPixels(obj.price)}
-  });
-
+function drawBoard() {
   // draw grid lines
   var yTop = roundToHalf(priceHi);
   var yBot = roundToHalf(priceLo);
@@ -94,6 +102,10 @@ var drawBoard = () => {
   ctx.closePath();
 
   // draw the green price line
+  var newList = priceList.slice()
+  var yList = newList.map((obj) => {
+    return {x: obj.x, price: mapPriceToPixels(obj.price)}
+  });
   ctx.beginPath()
   ctx.strokeStyle = lineColor;
   ctx.lineWidth = 1.5;
@@ -107,31 +119,59 @@ var drawBoard = () => {
 
   // draw account value
   ctx.beginPath();
-  ctx.rect(5,5,200,30);
-  ctx.setLineDash([]);
-  ctx.lineWidth = 2;
-  ctx.fillStyle = backgroundColor;
-  ctx.strokeStyle = gridColor;
-  ctx.stroke();
-  ctx.fill();
   ctx.font = accountFont;
   ctx.fillStyle = accountFontColor;
-  ctx.fillText("Current Account Value: " + capital.toFixed(2),16,24)
+  ctx.fillText("Net Liquidating Value: " + (positions.shares * price + capital).toFixed(2),15,24)
+  ctx.fillText("Cash Available: " + capital.toFixed(2),49,39)
+  ctx.fillText("Shares Held: " + positions.shares,63,54)
   ctx.closePath();
 }
 
-var startTradingDay = () => {
-  var funArray = [];
-  canvas.addEventListener('click', 
-    () => {
-      if (!positions.type) {
-        buy(x,price,funArray)
-      }
-      else {
-        close(x,price,funArray)
-      }
-    })
-  var interval = setInterval(function(){stockMover(interval,funArray)},30);
+function drawButton(fillColor) {
+  ctx.beginPath();
+  ctx.rect(275,255,90,35);
+  ctx.fillStyle = fillColor;
+  ctx.stroke();
+  ctx.fill();
+  ctx.font = "bold 16px Arial";
+  ctx.fillStyle = accountFontColor;
+  ctx.fillText("Next Day", 285,278);
+}
+
+function dayOnClick() {
+  if (!positions.type) {
+    buy(x,price)
+  }
+  else {
+    close(x,price)
+  }
+}
+
+function buttonOnClick() {
+  if (mousePos.x > 275 && mousePos.x < 365 && mousePos.y > 240 && mousePos.y < 275) {
+      startTradingDay();
+  }
+}
+
+function onMouseMove(e) {
+  mousePos = getMousePos(canvas, e)
+  if (mousePos.x > 275 && mousePos.x < 365 && mousePos.y > 240 && mousePos.y < 275) {
+    canvas.style.cursor = "pointer";
+    drawButton("#333333");
+  } else {
+    canvas.style.cursor = "default";
+    drawButton(backgroundColor);
+  }
+}
+
+function startTradingDay() {
+  canvas.removeEventListener('mousemove',onMouseMove);
+
+  canvas.removeEventListener('click',buttonOnClick);
+
+  canvas.addEventListener('click', dayOnClick);
+
+  var interval = setInterval(function(){stockMover(interval)},30);
 }
 
 var generateBuyInstructions = (x,price) => {
@@ -255,8 +295,8 @@ var generateBuyInstructions = (x,price) => {
   ])
 }
 
-var generateCloseInstructions = (x,price,funArray) => {
-  var gains = (positions.shares * price) - capital;
+var generateCloseInstructions = (x,price) => {
+  var gains = ((positions.shares * price) - (positions.shares * positions.price));
   return ([
     (() => {
       ctx.beginPath();
@@ -415,36 +455,66 @@ var generateCloseInstructions = (x,price,funArray) => {
       ctx.closePath();
     }),
     (() => {
-      funArray.shift();
+      funArray.shift()
     })
   ])
 }
 
-var buy = (x,price,funArray) => {
+function buy(x,price) {
   var instructions = generateBuyInstructions(x,price);
   var animate = frameTracker();
   positions.type = 'long';
   positions.price = price;
-  positions.shares = capital/price;
+  positions.shares = Math.floor(capital/price);
+  capital = capital - (positions.shares * price)
   funArray.push(() => {animate(instructions)});
 }
 
-var close = (x,price,funArray) => {
-  var instructions = generateCloseInstructions(x,price,funArray);
+function close(x,price) {
+  var instructions = generateCloseInstructions(x,price);
   var animate = frameTracker();
-  capital = positions.shares * price;
+  capital = capital + (positions.shares * price);
   positions.type = null;
   positions.price = null;
-  positions.shares = null;
+  positions.shares = 0;
+  overnightPosition = false;
   funArray.push(() => {animate(instructions)});
 }
 
-var stockMover = (interval,funArray) => {
-  var dx = 2;
-
-  if (x > 640) {
-    endTradingDay(interval);
+function drawOvernightPosition() {
+  if (positions.price > priceLo && positions.price < priceHi) {
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = buyColor;
+    ctx.fillStyle = buyColor;
+    ctx.font = font;
+    ctx.setLineDash([5,5])
+    ctx.moveTo(0,mapPriceToPixels(positions.price));
+    ctx.lineTo(640, mapPriceToPixels(positions.price))
+    ctx.stroke();
+    ctx.fillText(positions.price.toFixed(2),604,mapPriceToPixels(positions.price)-5)
+    ctx.closePath();
+  } else if (positions.price > priceHi) {
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.fillStyle = buyColor;
+    ctx.font = font;
+    ctx.fillText("^",617,15)
+    ctx.fillText(positions.price.toFixed(2),604,22)
+    ctx.closePath();
+  } else {
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.fillStyle = buyColor;
+    ctx.font = font;
+    ctx.fillText("v",617,414)
+    ctx.fillText(positions.price.toFixed(2),604,405)
+    ctx.closePath();
   }
+}
+
+function stockMover(interval) {
+  var dx = 2;
 
   if (price > priceHi) {
     priceHi = price;
@@ -455,19 +525,67 @@ var stockMover = (interval,funArray) => {
   }
 
   x += dx;
-  price += ((Math.random() * 0.2)-0.1);
+  price += (((Math.random() * volatility) - (volatility/2)) + skew);
   
   priceList.push({x: x, price: price});
   drawBoard();
 
+  if (overnightPosition) {
+    drawOvernightPosition();
+  }
+
   for (var i=0;i<funArray.length;i++) {
     funArray[i]();
   }
+
+  if (x > 640) {
+    endTradingDay(interval);
+  }
 }
 
-var endTradingDay = (interval) => {
+function endTradingDay(interval) {
   clearInterval(interval);
-  // TODO
+  x = 0;
+  y = mapPriceToPixels(price);
+  closePrice = price;
+  priceHi = price + 1;
+  priceLo = price - 1;
+  priceList = [];
+  funArray = []
+  if (positions.type) {
+    overnightPosition = true;
+    funArray = [() => {}]
+  } else {
+    overnightPosition = false;
+  }
+
+  canvas.removeEventListener('click', dayOnClick);
+
+  // draw the stuff
+  ctx.beginPath();
+  ctx.rect(170,105,300,200);
+  ctx.setLineDash([]);
+  ctx.lineWidth = 2;
+  ctx.fillStyle = backgroundColor;
+  ctx.strokeStyle = gridColor;
+  ctx.stroke();
+  ctx.fill();
+  ctx.closePath();
+
+  ctx.beginPath();
+  ctx.font = "bold 20px Arial";
+  ctx.fillStyle = accountFontColor;
+  ctx.fillText("DING DING DING!",233,140)
+  ctx.closePath();
+
+  drawButton(backgroundColor);
+
+  // poll for the mousex and mousey
+  var mousePos = {x:0, y:0};
+
+  canvas.addEventListener('mousemove', onMouseMove);
+
+  canvas.addEventListener('click', buttonOnClick)
 }
 
 startTradingDay();
