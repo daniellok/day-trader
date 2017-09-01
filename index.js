@@ -25,6 +25,7 @@ var canvas = createHiDPICanvas(640, 420);
 var ctx = canvas.getContext("2d");
 var font = "10px Arial";
 var accountFont = "12px Arial";
+var accountFontBold = "bold 12px Arial";
 var accountFontColor = "#eeeeee";
 var gainFont = "bold 12px Arial";
 var gainFontColor = "rgba(216, 155, 56,";
@@ -35,7 +36,7 @@ var buyColor = "#dd8d1c";
 var sellColor = "#dd8d1c";
 var closeColor = "#ef6147";
 var volatility = 0.2;
-var skew = 0.0;
+var skew = 0.00;
 
 var priceList = [];
 var funArray = [];
@@ -45,8 +46,9 @@ var capital = 10000;
 var priceHi = 245;
 var priceLo = 243;
 var price = 244;
-var closePrice = 0;
+var closePrice = 244;
 var openPrice = 244;
+var accountOpenValue = 10000;
 var x = 0;
 var y = mapPriceToPixels(price);
 
@@ -165,8 +167,9 @@ function onMouseMove(e) {
 }
 
 function startTradingDay() {
+  openPrice = closePrice;
+  accountOpenValue = (positions.shares * price + capital);
   canvas.removeEventListener('mousemove',onMouseMove);
-
   canvas.removeEventListener('click',buttonOnClick);
 
   canvas.addEventListener('click', dayOnClick);
@@ -513,6 +516,69 @@ function drawOvernightPosition() {
   }
 }
 
+function drawEndDayText() {
+  var indexGain = ((closePrice-openPrice)/openPrice)*100;
+  var accountGain = (((positions.shares * price + capital)-accountOpenValue)/accountOpenValue)*100;
+  var indexYTD = ((closePrice-244)/244)*100;
+  var accountYTD = (((positions.shares * price + capital)-10000)/10000)*100;
+
+  ctx.beginPath();
+  ctx.font = "bold 20px Arial";
+  ctx.fillStyle = accountFontColor;
+  ctx.fillText("DING DING DING!",233,140)
+  ctx.fillStyle = gridColor;
+  ctx.font = accountFontBold;
+  ctx.fillText("SPY Close: ",205,167);
+  ctx.fillText("Account Value: ", 205, 185);
+  ctx.fillText("SPY YTD Gains: ", 205, 215);
+  ctx.fillText("Account YTD Gains: ", 205, 232)
+
+  if (indexGain > 0) {
+    ctx.fillStyle = lineColor;
+    ctx.fillText(closePrice.toFixed(2) + " (" + indexGain.toFixed(2) + "%)",272,167)
+  } else if (indexGain == 0) {
+    ctx.fillStyle = accountFontColor;
+    ctx.fillText(closePrice.toFixed(2) + " (" + indexGain.toFixed(2) + "%)",272,167)
+  } else if (indexGain < 0) {
+    ctx.fillStyle = closeColor;
+    ctx.fillText(closePrice.toFixed(2) + " (" + indexGain.toFixed(2) + "%)",272,167)
+  }
+
+  if (accountGain > 0) {
+    ctx.fillStyle = lineColor;
+    ctx.fillText((positions.shares * price + capital).toFixed(2) + " (" + accountGain.toFixed(2) + "%)",294,185);
+  } else if (accountGain == 0) {
+    ctx.fillStyle = accountFontColor;
+    ctx.fillText((positions.shares * price + capital).toFixed(2) + " (" + accountGain.toFixed(2) + "%)",294,185);
+  } else if (accountGain < 0) {
+    ctx.fillStyle = closeColor;
+    ctx.fillText((positions.shares * price + capital).toFixed(2) + " (" + accountGain.toFixed(2) + "%)",294,185);
+  }
+
+  if (indexYTD > 0) {
+    ctx.fillStyle = lineColor;
+    ctx.fillText(indexYTD.toFixed(2) + "%",299,215)
+  } else if (indexYTD == 0) {
+    ctx.fillStyle = accountFontColor;
+    ctx.fillText(indexYTD.toFixed(2) + "%",299,215)
+  } else if (indexYTD < 0) {
+    ctx.fillStyle = closeColor;
+    ctx.fillText(indexYTD.toFixed(2) + "%",299,215)
+  }
+
+  if (accountYTD > 0) {
+    ctx.fillStyle = lineColor;
+    ctx.fillText(accountYTD.toFixed(2) + "%",323,232);
+  } else if (accountYTD == 0) {
+    ctx.fillStyle = accountFontColor;
+    ctx.fillText(accountYTD.toFixed(2) + "%",323,232);
+  } else if (accountYTD < 0) {
+    ctx.fillStyle = closeColor;
+    ctx.fillText(accountYTD.toFixed(2) + "%",323,232);
+  }
+  ctx.closePath();
+}
+
 function stockMover(interval) {
   var dx = 2;
 
@@ -551,7 +617,7 @@ function endTradingDay(interval) {
   priceHi = price + 1;
   priceLo = price - 1;
   priceList = [];
-  funArray = []
+  funArray = [];
   if (positions.type) {
     overnightPosition = true;
     funArray = [() => {}]
@@ -572,12 +638,7 @@ function endTradingDay(interval) {
   ctx.fill();
   ctx.closePath();
 
-  ctx.beginPath();
-  ctx.font = "bold 20px Arial";
-  ctx.fillStyle = accountFontColor;
-  ctx.fillText("DING DING DING!",233,140)
-  ctx.closePath();
-
+  drawEndDayText();
   drawButton(backgroundColor);
 
   // poll for the mousex and mousey
