@@ -70,6 +70,7 @@ var price = 244;
 var closePrice = 244;
 var openPrice = 244;
 var accountOpenValue = 10000;
+var mousePos = {x: 0, y: 0};
 var x = 0;
 var y = mapPriceToPixels(price);
 
@@ -304,14 +305,14 @@ function dayOnClick() {
 }
 
 function buttonOnClick() {
-  if (mousePos.x > 275 && mousePos.x < 365 && mousePos.y > 240 && mousePos.y < 275) {
+  if (mousePos.x > 275 && mousePos.x < 365 && mousePos.y > 255 && mousePos.y < 290) {
       startTradingDay();
   }
 }
 
 function onMouseMove(e) {
   mousePos = getMousePos(canvas, e)
-  if (mousePos.x > 275 && mousePos.x < 365 && mousePos.y > 240 && mousePos.y < 275) {
+  if (mousePos.x > 275 && mousePos.x < 365 && mousePos.y > 255 && mousePos.y < 290) {
     canvas.style.cursor = "pointer";
     drawButton("#333333");
   } else {
@@ -792,6 +793,10 @@ function endTradingDay(interval) {
 
   canvas.removeEventListener('click', dayOnClick);
 
+  // poll for the mousex and mousey
+  canvas.addEventListener('mousemove', onMouseMove);
+  canvas.addEventListener('click', buttonOnClick)
+
   // draw the stuff
   ctx.beginPath();
   ctx.rect(170,105,300,200);
@@ -806,11 +811,7 @@ function endTradingDay(interval) {
   drawEndDayText();
   drawButton(backgroundColor);
 
-  // poll for the mousex and mousey
-  var mousePos = {x:0, y:0};
-
   canvas.addEventListener('mousemove', onMouseMove);
-
   canvas.addEventListener('click', buttonOnClick)
 }
 
