@@ -45,7 +45,7 @@ var ichimokuFill = "rgba(137, 57, 229, 0.5)"
 var tenkansenData = Array(18).fill(244);
 var kijunsenData = Array(52).fill(244);
 var senkouspanbData = Array(104).fill(244);
-var spanAColor = "#e0d90f";
+var spanAColor = "#c91270";
 var spanBColor = "#0daee0";
 var ichiPointsA = [];
 var ichiPointsB = [];
@@ -59,6 +59,15 @@ var rsiLineColor = "#a3a3a3";
 var rsiLowerFill = "rgba(186,0,0,0.5)";
 var rsiUpperFill = "rgba(0,124,8,0.5";
 var rsiPoints = [];
+
+var macdActive = false;
+var twentysixema = 244;
+var twelveema = 244;
+var macd = 0;
+var macdColor = "#d6be26";
+var signalColor = "#ce0d21";
+var macdData = [];
+var signalData = [];
 
 var priceList = [];
 var funArray = [];
@@ -80,7 +89,11 @@ function mapPriceToPixels(price) {
 }
 
 function mapRSIToPixels(rsi) {
-  return (((rsi - 100)/-100) * 100) + 320
+  return (((rsi - 100)/ -100) * 100) + 320
+}
+
+function mapMACDToPixels(macd) {
+  return (((macd - 2.5)/ -1) * 200) + 105
 }
 
 function roundToHalf(number) {
@@ -138,9 +151,11 @@ function drawStudies() {
   ctx.font = font;
   ctx.fillText("Ichimoku Cloud",665,34)
   ctx.fillText("RSI",665,49)
+  ctx.fillText("MACD",665,64)
   ctx.closePath();
   drawCheckbox(ichimoku,650,25);
   drawCheckbox(rsiActive,650,40);
+  drawCheckbox(macdActive,650,55);
 }
 
 function drawIchimoku() {
@@ -162,7 +177,7 @@ function drawIchimoku() {
   if (ichimoku) {
     // draw span a
     ctx.beginPath();
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.5;
     ctx.setLineDash([]);
     ctx.strokeStyle = spanAColor;
     ctx.moveTo(ichiPointsA[0].x,mapPriceToPixels(ichiPointsA[0].price))
@@ -174,7 +189,7 @@ function drawIchimoku() {
 
     // draw span b
     ctx.beginPath();
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.5;
     ctx.setLineDash([]);
     ctx.strokeStyle = spanBColor;
     ctx.moveTo(ichiPointsB[0].x,mapPriceToPixels(ichiPointsB[0].price))
@@ -280,6 +295,40 @@ function drawRSI() {
   }
 }
 
+function drawMACD() {
+  var multiplierA = 2 / 27;
+  var multiplierB = 2 / 13;
+  var multiplierC = 2 / 10;
+  twentysixema = ((price * multiplierA) + (twentysixema * (1-multiplierA)))
+  twelveema = ((price * multiplierB) + (twelveema * (1-multiplierB)));
+  signal = (((twelveema - twentysixema) * multiplierC) + (macd * (1-multiplierC)))
+  macd = twelveema - twentysixema;
+
+  signalData.push({x: x, y: ((signal+1)*3)-1});
+  macdData.push({x: x, y: ((macd+1)*4)-2});
+
+  if (macdActive) {
+    ctx.beginPath();
+    ctx.setLineDash([]);
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = macdColor;
+    ctx.moveTo(macdData[0].x,mapMACDToPixels(macdData[0].y));
+    for (var i=0;i<macdData.length;i++) {
+      ctx.lineTo(macdData[i].x,mapMACDToPixels(macdData[i].y));
+    }
+    ctx.stroke();
+    ctx.closePath();
+    ctx.beginPath();
+    ctx.strokeStyle = signalColor;
+    ctx.moveTo(signalData[0].x,mapMACDToPixels(signalData[0].y));
+    for (var i=0;i<signalData.length;i++) {
+      ctx.lineTo(signalData[i].x,mapMACDToPixels(signalData[i].y));
+    }
+    ctx.stroke();
+    ctx.closePath;
+  }
+}
+
 function drawBoard() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -366,8 +415,10 @@ function dayOnClick() {
     }
   } else if (mousePos.x > 650 && mousePos.x < 735 && mousePos.y > 26 && mousePos.y < 38) {
       ichimoku = !ichimoku;
-  } else if (mousePos.x > 650 && mousePos.x < 735 && mousePos.y > 38 && mousePos.y < 50) {
+  } else if (mousePos.x > 650 && mousePos.x < 735 && mousePos.y > 38 && mousePos.y < 53) {
       rsiActive = !rsiActive;
+  } else if (mousePos.x > 650 && mousePos.x < 735 && mousePos.y > 53 && mousePos.y < 66) {
+      macdActive = !macdActive;
   }
 }
 
@@ -830,12 +881,14 @@ function stockMover(interval) {
   // draw studies panel
   drawStudies();
 
+  // draw actual studies
+  drawIchimoku();
+  drawRSI();
+  drawMACD();
+
   if (overnightPosition) {
     drawOvernightPosition();
   }
-
-  drawIchimoku();
-  drawRSI();
 
   for (var i=0;i<funArray.length;i++) {
     funArray[i]();
@@ -855,7 +908,9 @@ function endTradingDay(interval) {
   funArray = [];
   ichiPointsA = [];
   ichiPointsB = [];
-  rsiPoints = []
+  rsiPoints = [];
+  macdData = [];
+  signalData = [];
   if (positions.type) {
     overnightPosition = true;
     funArray = [() => {}]
