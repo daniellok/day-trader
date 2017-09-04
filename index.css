@@ -1,6 +1,84 @@
+h1 {
+  font-family: 'Droid Serif';
+  font-weight: bold;
+  letter-spacing: 2px;
+  font-size: 40px;
+  color: white;
+  text-align: center;
+}
+
+h2 {
+  font-family: 'Droid Serif';
+  font-weight: bold;
+  letter-spacing: 1px;
+  font-size: 35px;
+  color: white;
+  text-align: center;
+  text-decoration: underline;
+  margin-bottom: 2px;
+}
+
+h3 {
+  font-family: 'Droid Serif';
+  font-weight: bold;
+  letter-spacing: 1px;
+  font-size: 25px;
+  color: white;
+  text-align: left;
+  margin-bottom: 2px;
+}
+
+h4 {
+  font-family: 'Droid Serif';
+  font-weight: bold;
+  letter-spacing: 1px;
+  font-size: 20px;
+  color: white;
+  text-align: left;
+  margin-bottom: 2px;
+}
+
+body {
+  font-family: 'Roboto';
+  letter-spacing: 0.6px;
+  text-align: justify;
+  font-weight: 100;
+  color: white;
+  background-color: black;
+}
+
+a {
+  font-weight: 500;
+  color: #1f78c6;
+  text-decoration: none;
+}
+
+a:hover {
+  font-weight: 500;
+  color: #249de2;
+  text-decoration: none;
+}
+
+p {
+  line-height: 20px;
+  text-indent: 30px;
+}
+
+pre {
+  letter-spacing: 0px;
+}
+
+.section {
+  width: 750px;
+  margin: auto;
+}
+
 #game {
-  width: 640px;
-  height: 420px;
+  width: 750px;
+  height: 430px;
+  font-family: 'Arial';
+  letter-spacing: 0px;
   background-color: #1e1e1e;
+  border: 2px solid #666666;
   margin: auto;
 }

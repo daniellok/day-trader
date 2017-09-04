@@ -3,16 +3,79 @@
 <head>
     <meta charset=utf-8 />
     <meta name="viewport" content="initial-scale=1, maximum-scale=1" />
-    <meta name="description" content="A Gam" />
-    <title>A Gam</title>
+    <meta name="description" content="Day Trader - Beat the Market!" />
+    <title>Day Trader - Beat the Market!</title>
 
     <link rel="stylesheet" href="./index.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:100,300,500">
+    <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/monokai-sublime.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
 </head>
 
 <body>
+  <h1>Day Trader</h1>
   <div id="game">
   </div>
+
+  <div class="section">
+    <h2>Description</h2>
+    <p> This is just a small game I wrote to both practice JavaScript/HTML5, as well as to poke a little fun at some technical analysis studies 🙂. In this game, the stock price is controlled by a random variable. I initially intended to skew the randomness slightly toward the upside so that the best strategy would be to buy and hold, but I figured the game wouldn't be fun anymore if that were the case.</p>
+
+    <p>As of now, the game is not finished yet (there's still quite a few more studies I have to add), but since it was my first time writing a game, there were some learning points that I wanted to write down before I forget.</p>
+
+    <h2>Lessons Learned</h2>
+    <h3>> Concurrent Animations</h3>
+    <h4>The Problem</h4>
+    <p> One of the biggest challenges I ran into while making this game was the problem of getting multiple animations going at the same time. I used the old <code>setTimeout()</code> method to create this game (I mainly followed <a href="https://developer.mozilla.org/en-US/docs/Games/Tutorials/2D_Breakout_game_pure_JavaScript/Move_the_ball">this</a> tutorial), so essentially the animation is done via one main draw function which is called over and over again.</p>
+
+    <p>This method worked fine when I created the initial animation for the stock price, but given that this is a game, surely the user needs visual feedback when they buy and sell the stock! What I needed, then, was a separate draw function which executes on click.</p>
+
+    <p>I began working on this new function when I came to the unfortunate realization that whatever it drew to the canvas would immediately be erased the next time the main draw function was called. Somehow, I needed to include the buy animation within the main draw function. This actually ended up having a fairly simple solution. I'm not sure if it's the most efficient, but I hadn't seen it on StackOverflow when I searched, so I wanted to write about it here.</p>
+
+    <h4>The Solution</h4>
+
+    <p>We create a global variable <code>funArray</code>, which is essentially just an array containing all the custom draw functions we want to add. In our main draw function, we then loop through this array and execute every function in it. Therefore, all we have to do when the user clicks on the screen is push the "buy" or "sell" draw function to this array!</p>
+
+    <p>Hmm, but this doesn't seem good enough--we don't just want to draw something static, we want to create an animation. This means that our custom draw functions need to draw something slightly different each time they're called! </p>
+
+    <p>One solution could be to code multiple frames for the function to draw, and increment some sort of global variable which represents the frame number. However, this probably isn't a very flexible solution--if we wanted to have three custom draw functions, we'd have to implement three separate variables to track their current frame.</p>
+
+    <p>Instead, what we can do is make each of the functions have their own local frame-counting variable! This makes it more convenient, as we can have as many of these custom draw functions as we like without the added hassle of adding a new global variable. Here is the implementation (inspired by the implementation of <a href="https://en.wikipedia.org/wiki/Memoization">memoization</a>, although the application here is quite different).</p>
+
+    <pre><code class="javascript hljs">
+  function frameTracker() {
+    var frameCount = 0; // set a local frame-counting variable
+    function draw(instructions) {
+      if (frameCount < instructions.length) {
+        instructions[frameCount](); // draw the current frame
+        frameCount++; // increment the counter
+      } else { // if we've reached our last frame...
+        instructions.slice(-1)[0](); // keep drawing the last frame
+      }
+    }
+    return draw;
+  }
+    </code></pre>
+
+    <p>In the code above, "instructions" is an array in which every element is a function which draws a frame of the animation (for an example, have a look at <code>generateBuyInstructions()</code> in <code>index.js</code>). Having an array full of functions also has the added benefit of being able to take parameters, thereby allowing us to create animations based on the game state.</p>
+
+    <p>Using the <code>frameTracker()</code> function, this is how I implemented  <code>buy()</code>, which is called when the user clicks on the screen (some variables and game-state updates omitted for simplicity):</p>
+
+    <pre><code>
+  function buy() {
+    var instructions = generateBuyInstructions(); // frames for the "buy" animation
+    var animate = frameTracker(); // create a frame-tracking instance
+
+    funArray.push(() => {animate(instructions)}); // push to global funArray
+  }
+    </code></pre>
+
+    <p>And there we have it! Now we can conveniently add/remove as many new draw functions as we like by manipulating the <code>funArray</code>. This section has gone on long enough, so I'd like to wrap it up here. Hopefully I've made the implentation clear enough. If you know of a better way to get concurrent, user-event driven animations into a game, let me know!</p>
+  </div>
   
-  <script type="text/javascript" src="./index.js"></script>
+<script type="text/javascript" src="./index.js"></script>
 </body>
 </html>
