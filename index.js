@@ -21,7 +21,7 @@ createHiDPICanvas = function(w, h, ratio) {
     return can;
 }
 
-var canvas = createHiDPICanvas(640, 420);
+var canvas = createHiDPICanvas(750, 430);
 var ctx = canvas.getContext("2d");
 var font = "10px Arial";
 var accountFont = "12px Arial";
@@ -39,7 +39,7 @@ var closeColor = "#ef6147";
 var volatility = 0.2;
 var skew = 0.00;
 
-var ichimoku = true;
+var ichimoku = false;
 var ichimokuFill = "rgba(137, 57, 229, 0.5)"
 var tenkansenData = Array(18).fill(244);
 var kijunsenData = Array(52).fill(244);
@@ -49,7 +49,7 @@ var spanBColor = "#0daee0";
 var ichiPointsA = [];
 var ichiPointsB = [];
 
-var rsi = true;
+var rsiActive = false;
 var prevPrice = 244;
 var gainData = Array(14).fill(0);
 var lossData = Array(14).fill(0);
@@ -71,11 +71,11 @@ var closePrice = 244;
 var openPrice = 244;
 var accountOpenValue = 10000;
 var mousePos = {x: 0, y: 0};
-var x = 0;
+var x = 5;
 var y = mapPriceToPixels(price);
 
 function mapPriceToPixels(price) {
-  return (((price - priceHi)/(priceLo - priceHi)) * 400) + 10
+  return (((price - priceHi)/(priceLo - priceHi)) * 370) + 40
 }
 
 function mapRSIToPixels(rsi) {
@@ -107,6 +107,41 @@ function frameTracker() {
   return draw;
 }
 
+function drawCheckbox(checked,x,y) {
+  if (checked) {
+    ctx.beginPath();
+    ctx.lineWidth = 1.5;
+    ctx.fillStyle = gridColor;
+    ctx.strokeStyle = gridColor;
+    ctx.font = font;
+    ctx.rect(x,y,10,10);
+    ctx.stroke();
+    ctx.fillText("✓",x+1,y+9);
+    ctx.closePath();
+  } else {
+    ctx.beginPath();
+    ctx.lineWidth = 1.5;
+    ctx.fillStyle = gridColor;
+    ctx.strokeStyle = gridColor;
+    ctx.rect(x,y,10,10);
+    ctx.stroke();
+    ctx.closePath();
+  }
+}
+
+function drawStudies() {
+  ctx.beginPath();
+  ctx.font = accountFontBold;
+  ctx.fillStyle = accountFontColor;
+  ctx.fillText("Studies",673,17);
+  ctx.font = font;
+  ctx.fillText("Ichimoku Cloud",665,34)
+  ctx.fillText("RSI",665,49)
+  ctx.closePath();
+  drawCheckbox(ichimoku,650,25);
+  drawCheckbox(rsiActive,650,40);
+}
+
 function drawIchimoku() {
   tenkansenData.shift();
   kijunsenData.shift();
@@ -123,44 +158,48 @@ function drawIchimoku() {
   ichiPointsA.push({x: x, price: senkouspana});
   ichiPointsB.push({x: x, price: senkouspanb});
 
-  // draw span a
-  ctx.beginPath();
-  ctx.setLineDash([])
-  ctx.strokeStyle = spanAColor;
-  ctx.moveTo(ichiPointsA[0].x,mapPriceToPixels(ichiPointsA[0].price))
-  for (var i=0;i<ichiPointsA.length;i++) {
-    ctx.lineTo(ichiPointsA[i].x,mapPriceToPixels(ichiPointsA[i].price))
-  }
-  ctx.stroke();
-  ctx.closePath();
+  if (ichimoku) {
+    // draw span a
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+    ctx.strokeStyle = spanAColor;
+    ctx.moveTo(ichiPointsA[0].x,mapPriceToPixels(ichiPointsA[0].price))
+    for (var i=0;i<ichiPointsA.length;i++) {
+      ctx.lineTo(ichiPointsA[i].x,mapPriceToPixels(ichiPointsA[i].price))
+    }
+    ctx.stroke();
+    ctx.closePath();
 
-  // draw span b
-  ctx.beginPath();
-  ctx.setLineDash([])
-  ctx.strokeStyle = spanBColor;
-  ctx.moveTo(ichiPointsB[0].x,mapPriceToPixels(ichiPointsB[0].price))
-  for (var i=0;i<ichiPointsB.length;i++) {
-    ctx.lineTo(ichiPointsB[i].x,mapPriceToPixels(ichiPointsB[i].price))
-  }
-  ctx.stroke();
-  ctx.closePath();
+    // draw span b
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+    ctx.strokeStyle = spanBColor;
+    ctx.moveTo(ichiPointsB[0].x,mapPriceToPixels(ichiPointsB[0].price))
+    for (var i=0;i<ichiPointsB.length;i++) {
+      ctx.lineTo(ichiPointsB[i].x,mapPriceToPixels(ichiPointsB[i].price))
+    }
+    ctx.stroke();
+    ctx.closePath();
 
-  // draw fill
-  ctx.beginPath();
-  ctx.moveTo(ichiPointsA[0].x,mapPriceToPixels(ichiPointsA[0].price))
-  for (var i=0;i<ichiPointsB.length;i++) {
-    ctx.lineTo(ichiPointsB[i].x,mapPriceToPixels(ichiPointsB[i].price))
+    // draw fill
+    ctx.beginPath();
+    ctx.moveTo(ichiPointsA[0].x,mapPriceToPixels(ichiPointsA[0].price))
+    for (var i=0;i<ichiPointsB.length;i++) {
+      ctx.lineTo(ichiPointsB[i].x,mapPriceToPixels(ichiPointsB[i].price))
+    }
+    ctx.lineTo(ichiPointsA[ichiPointsA.length - 1].x,mapPriceToPixels(ichiPointsA[ichiPointsA.length - 1].price))
+    for (var i=0;i<ichiPointsA.length;i++) {
+      ctx.lineTo(ichiPointsA[ichiPointsA.length - i - 1].x,mapPriceToPixels(ichiPointsA[ichiPointsA.length - i - 1].price))
+    }
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = ichimokuFill;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.closePath();
+    ctx.restore();
   }
-  ctx.lineTo(ichiPointsA[ichiPointsA.length - 1].x,mapPriceToPixels(ichiPointsA[ichiPointsA.length - 1].price))
-  for (var i=0;i<ichiPointsA.length;i++) {
-    ctx.lineTo(ichiPointsA[ichiPointsA.length - i - 1].x,mapPriceToPixels(ichiPointsA[ichiPointsA.length - i - 1].price))
-  }
-  ctx.save();
-  ctx.clip();
-  ctx.fillStyle = ichimokuFill;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.closePath();
-  ctx.restore();
 }
 
 function drawRSI() {
@@ -186,74 +225,78 @@ function drawRSI() {
 
   rsiPoints.push({x: x, rsi: rsi});
 
-  ctx.beginPath();
-  ctx.setLineDash([]);
-  ctx.strokeStyle = rsiBoundColor;
-  ctx.moveTo(0,350);
-  ctx.lineTo(640,350);
-  ctx.moveTo(0,390);
-  ctx.lineTo(640,390);
-  ctx.stroke();
-  ctx.closePath();
+  if (rsiActive) {
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+    ctx.strokeStyle = rsiBoundColor;
+    ctx.moveTo(5,350);
+    ctx.lineTo(640,350);
+    ctx.moveTo(5,390);
+    ctx.lineTo(640,390);
+    ctx.stroke();
+    ctx.closePath();
 
-  ctx.beginPath();
-  ctx.strokeStyle = rsiLineColor;
-  ctx.moveTo(rsiPoints[0].x,mapRSIToPixels(rsiPoints[0].rsi));
-  for (var i=1;i<rsiPoints.length;i++) {
-    ctx.lineTo(rsiPoints[i].x,mapRSIToPixels(rsiPoints[i].rsi));
-  }
-  ctx.stroke();
-  ctx.closePath();
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = rsiLineColor;
+    ctx.moveTo(rsiPoints[0].x,mapRSIToPixels(rsiPoints[0].rsi));
+    for (var i=1;i<rsiPoints.length;i++) {
+      ctx.lineTo(rsiPoints[i].x,mapRSIToPixels(rsiPoints[i].rsi));
+    }
+    ctx.stroke();
+    ctx.closePath();
 
-  // fill upper rsi bound
-  ctx.beginPath();
-  ctx.moveTo(0,350);
-  for (var i=0;i<rsiPoints.length;i++) {
-    ctx.lineTo(rsiPoints[i].x,mapRSIToPixels(rsiPoints[i].rsi));
-  }
-  ctx.lineTo(rsiPoints[rsiPoints.length - 1].x,350);
-  ctx.lineTo(0,350);
-  ctx.save();
-  ctx.clip();
-  ctx.fillStyle = rsiUpperFill;
-  ctx.fillRect(0,320,640,30);
-  ctx.closePath();
-  ctx.restore();
+    // fill upper rsi bound
+    ctx.beginPath();
+    ctx.moveTo(5,350);
+    for (var i=0;i<rsiPoints.length;i++) {
+      ctx.lineTo(rsiPoints[i].x,mapRSIToPixels(rsiPoints[i].rsi));
+    }
+    ctx.lineTo(rsiPoints[rsiPoints.length - 1].x,350);
+    ctx.lineTo(5,350);
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = rsiUpperFill;
+    ctx.fillRect(5,320,640,30);
+    ctx.closePath();
+    ctx.restore();
 
-  // fill lower rsi bound
-  ctx.beginPath();
-  ctx.moveTo(0,390);
-  for (var i=0;i<rsiPoints.length;i++) {
-    ctx.lineTo(rsiPoints[i].x,mapRSIToPixels(rsiPoints[i].rsi));
+    // fill lower rsi bound
+    ctx.beginPath();
+    ctx.moveTo(5,390);
+    for (var i=0;i<rsiPoints.length;i++) {
+      ctx.lineTo(rsiPoints[i].x,mapRSIToPixels(rsiPoints[i].rsi));
+    }
+    ctx.lineTo(rsiPoints[rsiPoints.length - 1].x,390);
+    ctx.lineTo(5,390);
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = rsiLowerFill;
+    ctx.fillRect(5,390,640,30);
+    ctx.closePath();
+    ctx.restore();
   }
-  ctx.lineTo(rsiPoints[rsiPoints.length - 1].x,390);
-  ctx.lineTo(0,390);
-  ctx.save();
-  ctx.clip();
-  ctx.fillStyle = rsiLowerFill;
-  ctx.fillRect(0,390,640,30);
-  ctx.closePath();
-  ctx.restore();
 }
 
 function drawBoard() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
   // draw grid lines
   var yTop = roundToHalf(priceHi);
   var yBot = roundToHalf(priceLo);
   var lines = Array.from(new Array((yTop - yBot + 1) * 2), (x,i) => ({y: mapPriceToPixels((0.5*i) + yBot), price: (0.5*i) + yBot}))
 
-  ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.beginPath();
   ctx.lineWidth = 1;
-  ctx.setLineDash([])
+  ctx.setLineDash([]);
   ctx.font = font;
   ctx.fillStyle = gridColor;
   ctx.strokeStyle = gridColor;
-
   for (var i=0;i<lines.length;i++) {
-    ctx.moveTo(0,lines[i].y);
+    ctx.moveTo(5,lines[i].y);
     ctx.lineTo(640,lines[i].y);
-    ctx.fillText(lines[i].price.toString(),610,lines[i].y-5);
+    ctx.fillText(lines[i].price.toString(),611,lines[i].y-5);
   }
   ctx.stroke();
   ctx.closePath();
@@ -278,41 +321,60 @@ function drawBoard() {
   ctx.beginPath();
   ctx.font = accountFont;
   ctx.fillStyle = accountFontColor;
-  ctx.fillText("Net Liquidating Value: " + (positions.shares * price + capital).toFixed(2),15,24)
-  ctx.fillText("Cash Available: " + capital.toFixed(2),49,39)
-  ctx.fillText("Shares Held: " + positions.shares,63,54)
+  ctx.fillText("Net Liquidating Value: " + (positions.shares * price + capital).toFixed(2),20,29)
+  ctx.fillText("Cash Available: " + capital.toFixed(2),54,44)
+  ctx.fillText("Shares Held: " + positions.shares,68,59)
+  ctx.closePath();
+
+  // draw border
+  ctx.beginPath();
+  ctx.lineWidth = 2;
+  ctx.setLineDash([]);
+  ctx.strokeStyle = gridColor;
+  ctx.rect(5,5,636,420);
+  ctx.stroke();
   ctx.closePath();
 }
 
 function drawButton(fillColor) {
   ctx.beginPath();
-  ctx.rect(275,255,90,35);
+  ctx.rect(280,260,90,35);
   ctx.fillStyle = fillColor;
   ctx.stroke();
   ctx.fill();
   ctx.font = "bold 16px Arial";
   ctx.fillStyle = accountFontColor;
-  ctx.fillText("Next Day", 285,278);
+  ctx.fillText("Next Day", 290,283);
 }
 
 function dayOnClick() {
-  if (!positions.type) {
-    buy(x,price)
-  }
-  else {
-    close(x,price)
+  if (mousePos.x > 5 && mousePos.x < 641 && mousePos.y > 5 && mousePos.y < 425) {
+    if (!positions.type) {
+      buy(x,price)
+    }
+    else {
+      close(x,price)
+    }
+  } else if (mousePos.x > 650 && mousePos.x < 735 && mousePos.y > 26 && mousePos.y < 34) {
+      ichimoku = !ichimoku;
+  } else if (mousePos.x > 650 && mousePos.x < 735 && mousePos.y > 38 && mousePos.y < 46) {
+      rsiActive = !rsiActive;
   }
 }
 
+function onMouseMoveDay(e) {
+  mousePos = getMousePos(canvas, e)
+}
+
 function buttonOnClick() {
-  if (mousePos.x > 275 && mousePos.x < 365 && mousePos.y > 255 && mousePos.y < 290) {
+  if (mousePos.x > 280 && mousePos.x < 370 && mousePos.y > 260 && mousePos.y < 295) {
       startTradingDay();
   }
 }
 
-function onMouseMove(e) {
+function onMouseMoveNight(e) {
   mousePos = getMousePos(canvas, e)
-  if (mousePos.x > 275 && mousePos.x < 365 && mousePos.y > 255 && mousePos.y < 290) {
+  if (mousePos.x > 280 && mousePos.x < 370 && mousePos.y > 260 && mousePos.y < 295) {
     canvas.style.cursor = "pointer";
     drawButton("#333333");
   } else {
@@ -326,9 +388,10 @@ function startTradingDay() {
   priceHi = openPrice + 1;
   priceLo = openPrice - 1;
   accountOpenValue = (positions.shares * price + capital);
-  canvas.removeEventListener('mousemove',onMouseMove);
+  canvas.removeEventListener('mousemove',onMouseMoveNight);
   canvas.removeEventListener('click',buttonOnClick);
 
+  canvas.addEventListener('mousemove',onMouseMoveDay);
   canvas.addEventListener('click', dayOnClick);
 
   var interval = setInterval(function(){stockMover(interval)},30);
@@ -751,19 +814,19 @@ function stockMover(interval) {
   price += (((Math.random() * volatility) - (volatility/2)) + skew);
   
   priceList.push({x: x, price: price});
+
+  // draw board
   drawBoard();
+
+  // draw studies panel
+  drawStudies();
 
   if (overnightPosition) {
     drawOvernightPosition();
   }
 
-  if (ichimoku) {
-    drawIchimoku();
-  }
-
-  if (rsi) {
-    drawRSI();
-  }
+  drawIchimoku();
+  drawRSI();
 
   for (var i=0;i<funArray.length;i++) {
     funArray[i]();
@@ -776,7 +839,7 @@ function stockMover(interval) {
 
 function endTradingDay(interval) {
   clearInterval(interval);
-  x = 0;
+  x = 5;
   y = mapPriceToPixels(price);
   closePrice = price;
   priceList = [];
@@ -791,10 +854,11 @@ function endTradingDay(interval) {
     overnightPosition = false;
   }
 
+  canvas.removeEventListener('mousemove', onMouseMoveDay);
   canvas.removeEventListener('click', dayOnClick);
 
   // poll for the mousex and mousey
-  canvas.addEventListener('mousemove', onMouseMove);
+  canvas.addEventListener('mousemove', onMouseMoveNight);
   canvas.addEventListener('click', buttonOnClick)
 
   // draw the stuff
@@ -810,9 +874,6 @@ function endTradingDay(interval) {
 
   drawEndDayText();
   drawButton(backgroundColor);
-
-  canvas.addEventListener('mousemove', onMouseMove);
-  canvas.addEventListener('click', buttonOnClick)
 }
 
 startTradingDay();
