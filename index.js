@@ -30,6 +30,7 @@ var accountFontColor = "#eeeeee";
 var gainFont = "bold 12px Arial";
 var gainFontColor = "rgba(216, 155, 56,";
 var backgroundColor = "#1e1e1e";
+var darkBackgroundColor = "#111111";
 var gridColor = "#666666";
 var lineColor = "#079900";
 var buyColor = "#dd8d1c";
@@ -282,6 +283,14 @@ function drawRSI() {
 function drawBoard() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
+  // draw background
+  ctx.beginPath();
+  ctx.fillStyle = darkBackgroundColor;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = backgroundColor;
+  ctx.fillRect(5,5,635,420);
+  ctx.closePath();
+
   // draw grid lines
   var yTop = roundToHalf(priceHi);
   var yBot = roundToHalf(priceLo);
@@ -355,9 +364,9 @@ function dayOnClick() {
     else {
       close(x,price)
     }
-  } else if (mousePos.x > 650 && mousePos.x < 735 && mousePos.y > 26 && mousePos.y < 34) {
+  } else if (mousePos.x > 650 && mousePos.x < 735 && mousePos.y > 26 && mousePos.y < 38) {
       ichimoku = !ichimoku;
-  } else if (mousePos.x > 650 && mousePos.x < 735 && mousePos.y > 38 && mousePos.y < 46) {
+  } else if (mousePos.x > 650 && mousePos.x < 735 && mousePos.y > 38 && mousePos.y < 50) {
       rsiActive = !rsiActive;
   }
 }
